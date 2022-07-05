@@ -1,18 +1,16 @@
 import numpy as np
-from keras.datasets import mnist
 from keras.utils import np_utils
 from random import shuffle
 from tqdm import tqdm
 import cv2
 import os
-
 from dense import Dense
 from convolutional import Convolutional
+from avg_pooling import AvgPool
 from reshape import Reshape
 from activations import Sigmoid
 from losses import binary_cross_entropy, binary_cross_entropy_prime
 from network import train, predict
-import matplotlib.pyplot as plt
 
 def preprocess_data(x, y, limit):
     zero_index = np.where(y == 0)[0][:limit]
@@ -20,7 +18,7 @@ def preprocess_data(x, y, limit):
     all_indices = np.hstack((zero_index, one_index))
     all_indices = np.random.permutation(all_indices)
     x, y = x[all_indices], y[all_indices]
-    x = x.reshape(len(x), 1, 28, 28)
+    x = x.reshape(len(x), 1, 58, 58)
     x = x.astype("float32") / 255
     y = np_utils.to_categorical(y)
     y = y.reshape(len(y), 2, 1)
@@ -45,7 +43,7 @@ def my_data():
         try:
             path=os.path.join("data",img)
             img_data = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-            img_data = cv2.resize(img_data, (28,28))
+            img_data = cv2.resize(img_data, (58,58))
             data.append([np.array(img_data), my_label(img)])
         except:
             pass
@@ -56,24 +54,26 @@ data = my_data()
 
 train_1 = data[:160]
 test = data[40:]
-x_train = np.array([i[0] for i in train_1]).reshape(-1, 28, 28, 1)
+x_train = np.array([i[0] for i in train_1]).reshape(-1, 58, 58, 1)
 y_train = np.array([i[1][0] for i in train_1])
-x_test = np.array([i[0] for i in test]).reshape(-1, 28, 28, 1)
+x_test = np.array([i[0] for i in test]).reshape(-1, 58, 58, 1)
 y_test = np.array([i[1][0] for i in test])
 
 x_train, y_train = preprocess_data(x_train, y_train, 80)
-x_test, y_test = preprocess_data(x_test, y_test, 40)
+x_test, y_test = preprocess_data(x_test, y_test, 20)
 
 
 
 # neural network
 network = [
+    Convolutional((1, 58, 58), 3, 5),
+    Sigmoid(),
+    AvgPool((1, 56, 56), 3, 5),
     Convolutional((1, 28, 28), 3, 5),
     Sigmoid(),
-    Convolutional((1, 26, 26), 3, 5),
-    Sigmoid(),
-    Reshape((5, 24, 24), (5 * 24 * 24, 1)),
-    Dense(5 * 24 * 24, 100),
+    AvgPool((1, 26, 26), 3, 5),
+    Reshape((5, 13, 13), (5 * 13 * 13, 1)),
+    Dense(5 * 13 * 13, 100),
     Sigmoid(),
     Dense(100, 2),
     Sigmoid()
@@ -86,7 +86,7 @@ train(
     binary_cross_entropy_prime,
     x_train,
     y_train,
-    epochs=40,
+    epochs=20,
     learning_rate=0.01
 )
 
