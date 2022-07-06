@@ -5,6 +5,8 @@ def predict(network, input):
     return output
 
 def train(network, loss, loss_prime, x_train, y_train, epochs = 1000, learning_rate = 0.01, verbose = True):
+    plot_error = []
+    plot_iter = []
     for e in range(epochs):
         error = 0
         for x, y in zip(x_train, y_train):
@@ -22,3 +24,6 @@ def train(network, loss, loss_prime, x_train, y_train, epochs = 1000, learning_r
         error /= len(x_train)
         if verbose:
             print(f"{e + 1}/{epochs}, error={error}")
+            plot_iter.append(e+1)
+            plot_error.append(error)
+    return plot_iter, plot_error
