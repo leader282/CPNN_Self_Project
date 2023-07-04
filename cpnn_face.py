@@ -5,11 +5,12 @@ from tqdm import tqdm
 import cv2
 import os
 from dense import Dense
-from convolutional import Convolutional
+from convolutional_cpnn import Convolutional_cpnn
+from convolutional_cnn import Convolutional_cnn
 from avg_pooling import AvgPool
 from reshape import Reshape
-from activations import Sigmoid
-from losses import mse, mse_prime
+from activations import Relu, Softmax, Sigmoid
+from losses import mse, mse_prime, binary_cross_entropy, binary_cross_entropy_prime
 from network import train, predict
 import matplotlib.pyplot as plt
 
@@ -83,39 +84,88 @@ x_test, y_test = preprocess_data(x_test, y_test, 150)
 
 
 # neural network
-network = [
-    Convolutional((1, 64, 64), 3, 12),
+# cpnn
+network1 = [
+    Convolutional_cpnn((1, 64, 64), 3, 12),
     Sigmoid(),
     AvgPool((1, 62, 62), 12),
-    Convolutional((1, 31, 31), 2, 35),
+    Convolutional_cpnn((1, 31, 31), 2, 35),
     Sigmoid(),
     AvgPool((1, 30, 30), 35),
-    Convolutional((1, 15, 15), 2, 70),
+    Convolutional_cpnn((1, 15, 15), 2, 70),
     Sigmoid(),
     AvgPool((1, 14, 14), 70),
     Reshape((70, 7, 7), (70 * 7 * 7, 1)),
     Dense(70 * 7 * 7, 100),
-    Sigmoid(),
+    Softmax(),
     Dense(100, 10),
-    Sigmoid()
+    Softmax()
+]
+
+# cnn
+network2 = [
+    Convolutional_cnn((1, 64, 64), 3, 12),
+    Sigmoid(),
+    AvgPool((1, 62, 62), 12),
+    Convolutional_cnn((1, 31, 31), 2, 35),
+    Sigmoid(),
+    AvgPool((1, 30, 30), 35),
+    Convolutional_cnn((1, 15, 15), 2, 70),
+    Sigmoid(),
+    AvgPool((1, 14, 14), 70),
+    Reshape((70, 7, 7), (70 * 7 * 7, 1)),
+    Dense(70 * 7 * 7, 100),
+    Softmax(),
+    Dense(100, 10),
+    Softmax()
 ]
 
 # train
-plot_iter, plot_error = train(
-    network,
+# cpnn
+
+print("CPNN :")
+plot_iter_cpnn, plot_error_cpnn = train(
+    network1,
     mse,
-    mse,
+    mse_prime,
     x_train,
     y_train,
     epochs=100,
-    learning_rate=0.01
+    learning_rate=0.005,
 )
 
-plt.plot(plot_iter, plot_error)
+# cnn
+
+print("CNN :")
+plot_iter_cnn, plot_error_cnn = train(
+    network2,
+    mse,
+    mse_prime,
+    x_train,
+    y_train,
+    epochs=100,
+    learning_rate=0.005,
+)
+
+plt.xlabel("Epochs")
+plt.ylabel("MSE")
+plt.title("Learning Curve")
+plt.plot(plot_iter_cpnn, plot_error_cpnn, label="CPNN")
+plt.plot(plot_iter_cnn, plot_error_cnn, label="CNN")
+plt.legend(loc="best", shadow="True",  fontsize="large")
 plt.show()
 
-# test
+# # test
+# # cpnn
+# print("CPNN: ")
 # for x, y in zip(x_test, y_test):
-#     output = predict(network, x)
+#     output = predict(network1, x)
+#     if np.argmax(output) != np.argmax(y):
+#         print(f"pred: {np.argmax(output)}, true: {np.argmax(y)}")
+
+# # cnn
+# print("CNN :")
+# for x, y in zip(x_test, y_test):
+#     output = predict(network1, x)
 #     if np.argmax(output) != np.argmax(y):
 #         print(f"pred: {np.argmax(output)}, true: {np.argmax(y)}")
